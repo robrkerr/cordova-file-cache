@@ -4,8 +4,8 @@
   "description": "Cordova File Cache",
   "main": "index.js",
   "scripts": {
-    "prepublish": "webpack index.js dist/CordovaFileCache.js --output-library CordovaFileCache --output-library-target var",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "webpack index.js dist/CordovaFileCache.js --output-library CordovaFileCache --output-library-target var",
+    "test": "pushstate-server ."
   },
   "repository": {
     "type": "git",
@@ -17,5 +17,6 @@
     "cache"
   ],
   "author": "Mark Marijnissen",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {}
 }
