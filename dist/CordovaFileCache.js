@@ -279,6 +279,7 @@ FileCache.prototype.download = function download(onprogress,includeFileProgressE
       // download every file in the queue (which is the diff from _added with _cached)
       queue.forEach(function(url){
         var path = self.toPath(url);
+        var tmpPath = self.toPath(url) + '.tmp';
         // augment progress event with done/total stats
         var onSingleDownloadProgress;
         if(typeof onprogress === 'function') {
@@ -287,6 +288,7 @@ FileCache.prototype.download = function download(onprogress,includeFileProgressE
             ev.queueSize = total;
             ev.url = url;
             ev.path = path;
+            ev.tmpPath = tmpPath;
             ev.percentage = done / total;
             if(ev.loaded > 0 && ev.total > 0 && done !== total){
                ev.percentage += (ev.loaded / ev.total) / total;
@@ -297,7 +299,17 @@ FileCache.prototype.download = function download(onprogress,includeFileProgressE
           };
         }
 
-        // callback
+        // callbacks
+        var onSuccess = function(){
+          fs.move(tmpPath,path).then(function() {
+            onDone();
+          });
+        };
+        var onErr = function(err){
+          if(err && err.target && err.target.error) err = err.target.error;
+          errors.push(err);
+          onDone();
+        };
         var onDone = function(){
           done++;
           if(onSingleDownloadProgress) onSingleDownloadProgress(new ProgressEvent());
@@ -317,19 +329,14 @@ FileCache.prototype.download = function download(onprogress,includeFileProgressE
                 // Aye, some files got left behind! (or at least there were errors...)
                 reject(errors);
               }
-            },reject);
+            }, reject);
           }
-        };
-        var onErr = function(err){
-          if(err && err.target && err.target.error) err = err.target.error;
-          errors.push(err);
-          onDone();
         };
 
         var downloadUrl = url;
         if(self._cacheBuster) downloadUrl += "?"+Date.now();
-        var download = fs.download(downloadUrl,path,{retry:self._retry},includeFileProgressEvents? onSingleDownloadProgress: undefined);
-        download.then(onDone,onErr);
+        var download = fs.download(downloadUrl,tmpPath,{retry:self._retry},includeFileProgressEvents? onSingleDownloadProgress: undefined);
+        download.then(onSuccess,onErr);
         self._downloading.push(download);
       });
     },reject);
