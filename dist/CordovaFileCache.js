@@ -335,7 +335,9 @@ FileCache.prototype.download = function download(onprogress,includeFileProgressE
 
         var downloadUrl = url;
         if(self._cacheBuster) downloadUrl += "?"+Date.now();
-        var download = fs.download(downloadUrl,tmpPath,{retry:self._retry},includeFileProgressEvents? onSingleDownloadProgress: undefined);
+        var download = fs.remove(tmpPath).then(function(){
+          return fs.download(downloadUrl,tmpPath,{retry:self._retry},includeFileProgressEvents? onSingleDownloadProgress: undefined);
+        });
         download.then(onSuccess,onErr);
         self._downloading.push(download);
       });
