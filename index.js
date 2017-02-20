@@ -155,29 +155,10 @@ FileCache.prototype.download = function download(onprogress,includeFileProgressE
           };
         }
 
-        // callback
-        var onDone = function(){
+        // callbacks
+        var onSuccess = function(){
           fs.move(tmpPath,path).then(function() {
-            done++;
-            if(onSingleDownloadProgress) onSingleDownloadProgress(new ProgressEvent());
-
-            // when we're done
-            if(done === total) {
-              // reset downloads
-              self._downloading = [];
-              // check if we got everything
-              self.list().then(function(){
-                // final progress event!
-                if(onSingleDownloadProgress) onSingleDownloadProgress(new ProgressEvent());
-                // Yes, we're not dirty anymore! (and no errors!)
-                if(!self.isDirty() && errors.length === 0) {
-                  resolve(self);
-                } else {
-                  // Aye, some files got left behind! (or at least there were errors...)
-                  reject(errors);
-                }
-              },reject);
-            }
+            onDone();
           });
         };
         var onErr = function(err){
@@ -185,11 +166,33 @@ FileCache.prototype.download = function download(onprogress,includeFileProgressE
           errors.push(err);
           onDone();
         };
+        var onDone = function(){
+          done++;
+          if(onSingleDownloadProgress) onSingleDownloadProgress(new ProgressEvent());
+
+          // when we're done
+          if(done === total) {
+            // reset downloads
+            self._downloading = [];
+            // check if we got everything
+            self.list().then(function(){
+              // final progress event!
+              if(onSingleDownloadProgress) onSingleDownloadProgress(new ProgressEvent());
+              // Yes, we're not dirty anymore! (and no errors!)
+              if(!self.isDirty() && errors.length === 0) {
+                resolve(self);
+              } else {
+                // Aye, some files got left behind! (or at least there were errors...)
+                reject(errors);
+              }
+            }, reject);
+          }
+        };
 
         var downloadUrl = url;
         if(self._cacheBuster) downloadUrl += "?"+Date.now();
         var download = fs.download(downloadUrl,tmpPath,{retry:self._retry},includeFileProgressEvents? onSingleDownloadProgress: undefined);
-        download.then(onDone,onErr);
+        download.then(onSuccess,onErr);
         self._downloading.push(download);
       });
     },reject);
