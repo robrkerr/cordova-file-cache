@@ -6,7 +6,7 @@ function FileCache(options){
   var self = this;
   // cordova-promise-fs
   this._fs = options.fs;
-  if(!this._fs) { 
+  if(!this._fs) {
     throw new Error('Missing required option "fs". Add an instance of cordova-promise-fs.');
   }
   // Use Promises from fs.
@@ -135,6 +135,7 @@ FileCache.prototype.download = function download(onprogress,includeFileProgressE
       // download every file in the queue (which is the diff from _added with _cached)
       queue.forEach(function(url){
         var path = self.toPath(url);
+        var tmpPath = self.toPath(url) + '.tmp';
         // augment progress event with done/total stats
         var onSingleDownloadProgress;
         if(typeof onprogress === 'function') {
@@ -143,6 +144,7 @@ FileCache.prototype.download = function download(onprogress,includeFileProgressE
             ev.queueSize = total;
             ev.url = url;
             ev.path = path;
+            ev.tmpPath = tmpPath;
             ev.percentage = done / total;
             if(ev.loaded > 0 && ev.total > 0 && done !== total){
                ev.percentage += (ev.loaded / ev.total) / total;
@@ -155,26 +157,28 @@ FileCache.prototype.download = function download(onprogress,includeFileProgressE
 
         // callback
         var onDone = function(){
-          done++;
-          onSingleDownloadProgress(new ProgressEvent());
+          fs.move(tmpPath,path).then(function() {
+            done++;
+            onSingleDownloadProgress(new ProgressEvent());
 
-          // when we're done
-          if(done === total) {
-            // reset downloads
-            self._downloading = [];
-            // check if we got everything
-            self.list().then(function(){
-              // final progress event!
-              if(onSingleDownloadProgress) onSingleDownloadProgress(new ProgressEvent());
-              // Yes, we're not dirty anymore!
-              if(!self.isDirty()) {
-                resolve(self);
-              // Aye, some files got left behind!
-              } else {
-                reject(errors);
-              }
-            },reject);
-          }
+            // when we're done
+            if(done === total) {
+              // reset downloads
+              self._downloading = [];
+              // check if we got everything
+              self.list().then(function(){
+                // final progress event!
+                if(onSingleDownloadProgress) onSingleDownloadProgress(new ProgressEvent());
+                // Yes, we're not dirty anymore!
+                if(!self.isDirty()) {
+                  resolve(self);
+                // Aye, some files got left behind!
+                } else {
+                  reject(errors);
+                }
+              },reject);
+            }
+          });
         };
         var onErr = function(err){
           if(err && err.target && err.target.error) err = err.target.error;
@@ -184,7 +188,7 @@ FileCache.prototype.download = function download(onprogress,includeFileProgressE
 
         var downloadUrl = url;
         if(self._cacheBuster) downloadUrl += "?"+Date.now();
-        var download = fs.download(downloadUrl,path,{retry:self._retry},includeFileProgressEvents? onSingleDownloadProgress: undefined);
+        var download = fs.download(downloadUrl,tmpPath,{retry:self._retry},includeFileProgressEvents? onSingleDownloadProgress: undefined);
         download.then(onDone,onErr);
         self._downloading.push(download);
       });
