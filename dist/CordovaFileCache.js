@@ -150,7 +150,7 @@ function FileCache(options){
   var self = this;
   // cordova-promise-fs
   this._fs = options.fs;
-  if(!this._fs) { 
+  if(!this._fs) {
     throw new Error('Missing required option "fs". Add an instance of cordova-promise-fs.');
   }
   // Use Promises from fs.
@@ -310,11 +310,11 @@ FileCache.prototype.download = function download(onprogress,includeFileProgressE
             self.list().then(function(){
               // final progress event!
               if(onSingleDownloadProgress) onSingleDownloadProgress(new ProgressEvent());
-              // Yes, we're not dirty anymore!
-              if(!self.isDirty()) {
+              // Yes, we're not dirty anymore! (and no errors!)
+              if(!self.isDirty() && errors.length === 0) {
                 resolve(self);
-              // Aye, some files got left behind!
               } else {
+                // Aye, some files got left behind! (or at least there were errors...)
                 reject(errors);
               }
             },reject);
@@ -350,7 +350,9 @@ FileCache.prototype.isCached = function isCached(url){
 
 FileCache.prototype.clear = function clear(){
   var self = this;
-  this._cached = {};
+  self._cached = {};
+  self._added = [];
+  self.abort();
   return this._fs.removeDir(this.localRoot).then(function(){
     return self._fs.ensure(self.localRoot);
   });

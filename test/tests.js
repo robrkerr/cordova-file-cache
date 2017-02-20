@@ -122,7 +122,17 @@
 			},err(assert));
 	});
 
+	QUnit.asyncTest('clear: empties the download queue and any files that have been added',function(assert){
+		cache.clear()
+			.then(function(){
+				assert.deepEqual(cache.getDownloadQueue(),[],'downloadQueue is empty');
+				assert.deepEqual(cache.isDirty(),false,'is not dirty');
+				QUnit.start();
+			});
+	});
+
 	QUnit.asyncTest('download',function(assert){
+		cache.add([file1,file2,file3]);
 		cache.download()
 			.then(function(x){
 				assert.deepEqual(x,cache,'download returns cache');
@@ -133,17 +143,14 @@
 			.then(function(list){
 				assert.deepEqual(list,['/cache-test/file3.txt','/cache-test/file2.txt','/cache-test/file1.txt'],'files are really there!');
 				QUnit.start();
-			},err(assert));
+			});
 		// assert.equal(cache._downloading.length,2);
 	});
 
 	QUnit.asyncTest('download with invalid files (rejects with failed files)',function(assert){
 		var url = SERVER+'does-not-exist.txt';
 		cache.add(url);
-		cache.clear()
-			.then(function(){
-				return cache.download();
-			})
+		cache.download()
 			.then(err(assert),function(errors){
 				assert.deepEqual(cache.getDownloadQueue(),[url],'downloadQueue has failed url');
 				// assert.deepEqual(errors,[url],'returns failed urls');
@@ -188,7 +195,7 @@
 	//toDataURL
 	QUnit.asyncTest('toDataURL',function(assert){
 		cache.toDataURL(file1)
-			.then(ok(assert,'data:text/plain;base64,aGVsbG8gd29ybGQ='),err(assert));
+			.then(ok(assert,'data:text/plain;base64,aGVsbG8gd29ybGQ='));
 	});
 
 	//toURL

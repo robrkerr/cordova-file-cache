@@ -6,7 +6,7 @@ function FileCache(options){
   var self = this;
   // cordova-promise-fs
   this._fs = options.fs;
-  if(!this._fs) { 
+  if(!this._fs) {
     throw new Error('Missing required option "fs". Add an instance of cordova-promise-fs.');
   }
   // Use Promises from fs.
@@ -167,7 +167,7 @@ FileCache.prototype.download = function download(onprogress,includeFileProgressE
               // final progress event!
               if(onSingleDownloadProgress) onSingleDownloadProgress(new ProgressEvent());
               // Yes, we're not dirty anymore! (and no errors!)
-              if(!self.isDirty() && !errors) {
+              if(!self.isDirty() && errors.length === 0) {
                 resolve(self);
               } else {
                 // Aye, some files got left behind! (or at least there were errors...)
